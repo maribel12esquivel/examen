@@ -26,7 +26,7 @@ app.get('/api', (req, res) => {
 });
 
 app.post('/api/like', (req, res) => {
-  // Incrementar contador
+  // Implementar contador
   likesCount++;
 
   io.emit('likeUpdated', likesCount);
