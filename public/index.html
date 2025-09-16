@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contador de Likes en Tiempo Real</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        h1 {
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .likes-counter {
+            font-size: 4em;
+            font-weight: bold;
+            color: #a14e4e;
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .like-button {
+            background: linear-gradient(45deg, #bd6a6a, #ff8e8e);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.5em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(139, 74, 74, 0.4);
+        }
+        
+        .like-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.6);
+        }
+        
+        .like-button:active {
+            transform: scale(0.98);
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 0.9em;
+        }
+        
+        .connected {
+            background: rgba(76, 175, 80, 0.3);
+            color: #4caf50;
+        }
+        
+        .disconnected {
+            background: rgba(244, 67, 54, 0.3);
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1> Contador de Likes</h1>
+        <div class="likes-counter" id="likesCount">0</div>
+        <button class="like-button" id="likeButton">
+             Dar Like
+        </button>
+        <div class="status disconnected" id="status">
+             Desconectado
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        // Cambiar esta URL por la de tu servidor desplegado
+        const SERVER_URL = window.location.origin; // Usa el mismo servidor
+        // const SERVER_URL = 'https://tu-servidor.render.com'; // Para producción
+        
+        const socket = io(SERVER_URL);
+        const likesCountElement = document.getElementById('likesCount');
+        const likeButton = document.getElementById('likeButton');
+        const statusElement = document.getElementById('status');
+        
+        // Conexión establecida
+        socket.on('connect', () => {
+            console.log('Conectado al servidor');
+            statusElement.textContent = 'Conectado';
+            statusElement.className = 'status connected';
+        });
+        
+        // Desconectado
+        socket.on('disconnect', () => {
+            console.log('Desconectado del servidor');
+            statusElement.textContent = ' Desconectado';
+            statusElement.className = 'status disconnected';
+        });
+        
+        // Escuchar actualizaciones de likes
+        socket.on('likeUpdated', (newCount) => {
+            likesCountElement.textContent = newCount;
+            // Animación simple
+            likesCountElement.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                likesCountElement.style.transform = 'scale(1)';
+            }, 200);
+        });
+        
+        // Manejar click del botón
+        likeButton.addEventListener('click', async () => {
+            try {
+                likeButton.disabled = true;
+                likeButton.textContent = 'Enviando...';
+                
+                const response = await fetch(`${SERVER_URL}/api/like`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Error al enviar like');
+                }
+                
+                console.log('Like enviado correctamente');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al enviar el like');
+            } finally {
+                likeButton.disabled = false;
+                likeButton.textContent = ' Dar Like';
+            }
+        });
+        
+        // Cargar contador inicial
+        async function loadInitialCount() {
+            try {
+                const response = await fetch(`${SERVER_URL}/api`);
+                const data = await response.json();
+                likesCountElement.textContent = data.likes;
+            } catch (error) {
+                console.error('Error al cargar contador inicial:', error);
+            }
+        }
+        
+        loadInitialCount();
+    </script>
+</body>
+</html>
